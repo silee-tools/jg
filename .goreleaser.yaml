@@ -1,0 +1,43 @@
+version: 2
+
+builds:
+  - main: ./cmd/jg
+    binary: jg
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - darwin
+      - linux
+    goarch:
+      - amd64
+      - arm64
+
+archives:
+  - format: tar.gz
+    name_template: "{{ .ProjectName }}-v{{ .Version }}-{{ .Os }}-{{ .Arch }}"
+
+checksum:
+  name_template: "checksums.txt"
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^chore:"
+
+brews:
+  - repository:
+      owner: silee-tools
+      name: homebrew-tap
+      token: "{{ .Env.HOMEBREW_TAP_TOKEN }}"
+    directory: Formula
+    homepage: "https://github.com/silee-tools/jg"
+    description: "A frecency-based CLI for quickly jumping to Git repositories"
+    license: "MIT"
+    dependencies:
+      - name: fzf
+    install: |
+      bin.install "jg"
+    test: |
+      assert_match "jg", shell_output("#{bin}/jg --help 2>&1")

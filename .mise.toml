@@ -1,6 +1,9 @@
+[tools]
+go = "1.23"
+
 [tasks.build]
 description = "Build the project"
-run = "go build ./..."
+run = "go build ./cmd/jg"
 
 [tasks.test]
 description = "Run tests"
@@ -20,4 +23,4 @@ run = "test -z $(gofmt -l .)"
 
 [tasks.install]
 description = "Build and install to ~/.local/bin"
-run = "go build -o ~/.local/bin/jg ./"
+run = "go build -o ~/.local/bin/jg ./cmd/jg"
