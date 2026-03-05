@@ -1,7 +1,6 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"os"
 	"os/exec"
@@ -17,47 +16,59 @@ import (
 
 var version = "dev"
 
-var (
-	addPath     = flag.String("add", "", "Add/update entry for path")
-	removePath  = flag.String("remove", "", "Remove entry for path")
-	listFlag    = flag.Bool("l", false, "List all repos with frecency scores")
-	cleanFlag   = flag.Bool("clean", false, "Remove entries for non-existent directories")
-	versionFlag = flag.Bool("version", false, "Show version")
-)
-
 func main() {
-	flag.Usage = func() {
-		fmt.Fprintf(os.Stderr, "Usage: jg [options] [query...]\n\n")
-		fmt.Fprintf(os.Stderr, "A frecency-based CLI for quickly jumping to Git repositories.\n\n")
-		fmt.Fprintf(os.Stderr, "Commands:\n")
-		fmt.Fprintf(os.Stderr, "  jg init <shell>    Output shell integration code (zsh, bash)\n")
-		fmt.Fprintf(os.Stderr, "  jg [query...]      Interactive jump with fzf\n\n")
-		fmt.Fprintf(os.Stderr, "Options:\n")
-		flag.PrintDefaults()
-	}
+	args := os.Args[1:]
 
-	// Handle "init" subcommand before flag.Parse
-	if len(os.Args) >= 2 && os.Args[1] == "init" {
-		runInit(os.Args[2:])
+	if len(args) == 0 {
+		runJump(nil)
 		return
 	}
 
-	flag.Parse()
-
-	switch {
-	case *versionFlag:
-		fmt.Printf("jg v%s\n", version)
-	case *addPath != "":
-		runAdd(*addPath)
-	case *removePath != "":
-		runRemove(*removePath)
-	case *listFlag:
+	switch args[0] {
+	case "init":
+		runInit(args[1:])
+	case "--add", "-add":
+		if len(args) < 2 {
+			fmt.Fprintln(os.Stderr, "Usage: jg --add <path>")
+			os.Exit(1)
+		}
+		runAdd(args[1])
+	case "--remove", "-remove":
+		if len(args) < 2 {
+			fmt.Fprintln(os.Stderr, "Usage: jg --remove <path>")
+			os.Exit(1)
+		}
+		runRemove(args[1])
+	case "-l", "--list":
 		runList()
-	case *cleanFlag:
+	case "--clean", "-clean":
 		runClean()
+	case "-v", "--version", "-version":
+		fmt.Printf("jg v%s © 2026 silee-tools\n", version)
+	case "-h", "--help", "-help":
+		printHelp()
 	default:
-		runJump(flag.Args())
+		runJump(args)
 	}
+}
+
+func printHelp() {
+	fmt.Print(`Usage: jg [command] [options]
+
+A frecency-based CLI for quickly jumping to Git repositories.
+
+Commands:
+  jg [query...]          Interactive jump with fzf
+  jg init <shell>        Output shell integration code (zsh, bash)
+
+Options:
+  --add <path>           Add/update entry for path
+  --remove <path>        Remove entry for path
+  --clean                Remove entries for non-existent directories
+  -l, --list             List all repos with frecency scores
+  -v, --version          Show version
+  -h, --help             Show this help
+`)
 }
 
 func runInit(args []string) {
@@ -76,20 +87,17 @@ func runInit(args []string) {
 func runAdd(path string) {
 	absPath, err := filepath.Abs(path)
 	if err != nil {
-		return // silent fail, called from hook
+		return
 	}
 
-	// Check if path is inside a git repo
 	cmd := exec.Command("git", "-C", absPath, "rev-parse", "--show-toplevel")
 	out, err := cmd.Output()
 	if err != nil {
-		return // not a git repo, silently ignore
+		return
 	}
 
 	repoRoot := strings.TrimSpace(string(out))
-	if err := entry.AddOrUpdate(repoRoot); err != nil {
-		return // silent fail
-	}
+	entry.AddOrUpdate(repoRoot)
 }
 
 func runRemove(path string) {
@@ -147,7 +155,6 @@ func runJump(queryArgs []string) {
 		os.Exit(1)
 	}
 
-	// Auto-clean stale entries
 	var valid []entry.Entry
 	for _, e := range entries {
 		info, statErr := os.Stat(e.Path)
@@ -174,7 +181,7 @@ func runJump(queryArgs []string) {
 	}
 
 	if selected == "" {
-		os.Exit(1) // cancelled, shell wrapper won't cd
+		os.Exit(1)
 	}
 
 	fmt.Println(selected)
