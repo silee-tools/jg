@@ -15,11 +15,14 @@ import (
 	"github.com/silee-tools/jg/internal/shell"
 )
 
+var version = "dev"
+
 var (
-	addPath    = flag.String("add", "", "Add/update entry for path")
-	removePath = flag.String("remove", "", "Remove entry for path")
-	listFlag   = flag.Bool("l", false, "List all repos with frecency scores")
-	cleanFlag  = flag.Bool("clean", false, "Remove entries for non-existent directories")
+	addPath     = flag.String("add", "", "Add/update entry for path")
+	removePath  = flag.String("remove", "", "Remove entry for path")
+	listFlag    = flag.Bool("l", false, "List all repos with frecency scores")
+	cleanFlag   = flag.Bool("clean", false, "Remove entries for non-existent directories")
+	versionFlag = flag.Bool("version", false, "Show version")
 )
 
 func main() {
@@ -42,6 +45,8 @@ func main() {
 	flag.Parse()
 
 	switch {
+	case *versionFlag:
+		fmt.Printf("jg v%s\n", version)
 	case *addPath != "":
 		runAdd(*addPath)
 	case *removePath != "":
