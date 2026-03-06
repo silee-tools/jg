@@ -48,8 +48,12 @@ brews:
       bash_completion.install "completions/jg.bash" => "jg"
       (share/"jg"/"plugin").install "plugin/jg.plugin.zsh"
     post_install: |
-      login_shell = ENV.fetch("SHELL", "")
       home = ENV.fetch("HOME", Dir.home)
+      login_shell = ENV.fetch("SHELL", "")
+      if login_shell.empty?
+        login_shell = `dscl . -read #{home} UserShell 2>/dev/null`.strip.split(":").last.to_s.strip rescue ""
+      end
+      login_shell = "/bin/zsh" if login_shell.empty? && File.exist?(File.join(home, ".zshrc"))
 
       if login_shell.end_with?("zsh")
         omz_dir = File.join(home, ".oh-my-zsh")
