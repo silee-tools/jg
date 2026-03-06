@@ -16,6 +16,12 @@ This automatically installs `fzf` as a dependency.
 
 ## Shell Setup
 
+Shell integration is configured automatically when installed via Homebrew.
+
+### Manual Setup
+
+**Option 1: eval**
+
 Add to your `~/.zshrc`:
 
 ```zsh
@@ -26,6 +32,19 @@ Or for Bash, add to `~/.bashrc`:
 
 ```bash
 eval "$(jg init bash)"
+```
+
+**Option 2: oh-my-zsh plugin** (recommended for oh-my-zsh users)
+
+```zsh
+ln -sf $(brew --prefix)/share/jg/plugin/jg.plugin.zsh \
+  ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/jg/jg.plugin.zsh
+```
+
+Then add `jg` to your plugins in `~/.zshrc`:
+
+```zsh
+plugins=(... jg)
 ```
 
 ## Usage
