@@ -3,6 +3,7 @@ package shell
 import (
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -95,17 +96,19 @@ func setupOhMyZsh(home, omzDir string, result *SetupResult) error {
 	}
 
 	text := string(content)
-	if regexp.MustCompile(`plugins\s*=\s*\([^)]*\bjg\b`).MatchString(text) {
+	if regexp.MustCompile(`(?m)^[^#]*plugins\s*=\s*\([^)]*\bjg\b`).MatchString(text) {
 		return nil // already configured
 	}
 
-	pluginsRe := regexp.MustCompile(`(?m)(plugins\s*=\s*\()`)
+	pluginsRe := regexp.MustCompile(`(?m)(^plugins\s*=\s*\()`)
 	if !pluginsRe.MatchString(text) {
 		result.Actions = append(result.Actions, "Could not find plugins=(...) in .zshrc. Add 'jg' to your plugins manually.")
 		return nil
 	}
 
-	newText := pluginsRe.ReplaceAllString(text, "${1}\n  jg")
+	newText := pluginsRe.ReplaceAllStringFunc(text, func(match string) string {
+		return match + "\n  jg"
+	})
 	if err := os.WriteFile(zshrc, []byte(newText), 0644); err != nil {
 		return fmt.Errorf("failed to update .zshrc: %w", err)
 	}
@@ -147,11 +150,14 @@ func appendEvalLine(rcFile, evalLine string, result *SetupResult) error {
 }
 
 func findPluginFile() (string, error) {
-	exe, err := os.Executable()
+	// Use LookPath to get the unresolved symlink path (e.g., /opt/homebrew/bin/jg)
+	// so the plugin symlink survives brew upgrades.
+	// os.Executable() resolves symlinks on macOS, pointing to Cellar which changes per version.
+	exe, err := exec.LookPath("jg")
 	if err != nil {
 		return "", err
 	}
-	exe, err = filepath.EvalSymlinks(exe)
+	exe, err = filepath.Abs(exe)
 	if err != nil {
 		return "", err
 	}
