@@ -24,3 +24,8 @@ run = "test -z $(gofmt -l .)"
 [tasks.install]
 description = "Build and install to ~/.local/bin"
 run = "go build -o ~/.local/bin/jg ./cmd/jg"
+
+[tasks.release]
+description = "Interactive release (version bump, tag, push)"
+raw = true
+run = "bash scripts/release.sh"
