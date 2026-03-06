@@ -27,6 +27,8 @@ func main() {
 	switch args[0] {
 	case "init":
 		runInit(args[1:])
+	case "setup":
+		runSetup(args[1:])
 	case "--add", "-add":
 		if len(args) < 2 {
 			fmt.Fprintln(os.Stderr, "Usage: jg --add <path>")
@@ -60,6 +62,7 @@ A frecency-based CLI for quickly jumping to Git repositories.
 Commands:
   jg [query...]          Interactive jump with fzf
   jg init <shell>        Output shell integration code (zsh, bash)
+  jg setup [shell]       Set up shell integration (auto-detects shell)
 
 Options:
   --add <path>           Add/update entry for path
@@ -82,6 +85,27 @@ func runInit(args []string) {
 		os.Exit(1)
 	}
 	fmt.Println(code)
+}
+
+func runSetup(args []string) {
+	var shellOverride string
+	if len(args) > 0 {
+		shellOverride = args[0]
+	}
+	result, err := shell.Setup(shellOverride)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "Error:", err)
+		os.Exit(1)
+	}
+	if len(result.Actions) == 0 {
+		fmt.Fprintf(os.Stderr, "jg is already set up for %s. Nothing to do.\n", result.Shell)
+		return
+	}
+	fmt.Fprintf(os.Stderr, "jg setup complete for %s:\n", result.Shell)
+	for _, action := range result.Actions {
+		fmt.Fprintf(os.Stderr, "  ✓ %s\n", action)
+	}
+	fmt.Fprintln(os.Stderr, "\nRestart your shell or run: exec $SHELL")
 }
 
 func runAdd(path string) {

@@ -47,74 +47,8 @@ brews:
       zsh_completion.install "completions/_jg"
       bash_completion.install "completions/jg.bash" => "jg"
       (share/"jg"/"plugin").install "plugin/jg.plugin.zsh"
-    post_install: |
-      home = ENV.fetch("HOME", Dir.home)
-      login_shell = ENV.fetch("SHELL", "")
-      if login_shell.empty?
-        login_shell = `dscl . -read #{home} UserShell 2>/dev/null`.strip.split(":").last.to_s.strip rescue ""
-      end
-      login_shell = "/bin/zsh" if login_shell.empty? && File.exist?(File.join(home, ".zshrc"))
-
-      if login_shell.end_with?("zsh")
-        omz_dir = File.join(home, ".oh-my-zsh")
-
-        if Dir.exist?(omz_dir)
-          zsh_custom = ENV.fetch("ZSH_CUSTOM", File.join(omz_dir, "custom"))
-          plugin_dir = File.join(zsh_custom, "plugins", "jg")
-          FileUtils.mkdir_p(plugin_dir)
-          FileUtils.ln_sf(share/"jg"/"plugin"/"jg.plugin.zsh",
-                          File.join(plugin_dir, "jg.plugin.zsh"))
-
-          zshrc = File.join(home, ".zshrc")
-          if File.exist?(zshrc)
-            content = File.read(zshrc)
-            unless content.match?(/plugins\s*=\s*\([^)]*\bjg\b/m)
-              new_content = content.sub(
-                /^(\s*plugins\s*=\s*\()([^)]*?)(\s*\))/m
-              ) do
-                prefix, existing, suffix = $1, $2.rstrip, $3
-                if existing.include?("\n")
-                  indent = existing.scan(/^(\s+)\S/).flatten.last || "  "
-                  "#{prefix}#{existing}\n#{indent}jg#{suffix}"
-                else
-                  "#{prefix}#{existing} jg#{suffix}"
-                end
-              end
-              if new_content != content
-                File.write(zshrc, new_content)
-                opoo "Added 'jg' to plugins in #{zshrc}"
-              else
-                opoo "Could not find plugins=(...) in #{zshrc}. Add 'jg' to your plugins manually."
-              end
-            end
-          end
-        else
-          zshrc = File.join(home, ".zshrc")
-          eval_line = 'eval "$(jg init zsh)"'
-          if File.exist?(zshrc)
-            content = File.read(zshrc)
-            unless content.include?(eval_line)
-              File.open(zshrc, "a") { |f| f.puts("\n#{eval_line}") }
-            end
-          end
-        end
-
-      elsif login_shell.end_with?("bash")
-        bashrc = File.join(home, ".bashrc")
-        eval_line = 'eval "$(jg init bash)"'
-        if File.exist?(bashrc)
-          content = File.read(bashrc)
-          unless content.include?(eval_line)
-            File.open(bashrc, "a") { |f| f.puts("\n#{eval_line}") }
-          end
-        end
-      end
     caveats: |
-      Shell integration has been configured automatically.
-
-      If using oh-my-zsh, 'jg' was added to your plugins.
-      Otherwise, 'eval "$(jg init <shell>)"' was added to your shell rc file.
-
-      To uninstall completely, remove the jg entry from your shell rc file.
+      Run 'jg setup' to configure shell integration,
+      then restart your shell or run: exec $SHELL
     test: |
       assert_match "jg", shell_output("#{bin}/jg --help 2>&1")
