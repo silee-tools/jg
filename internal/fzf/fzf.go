@@ -17,13 +17,17 @@ func Run(entries []entry.Entry, query string) (string, error) {
 		return "", fmt.Errorf("fzf not found. Install it: brew install fzf")
 	}
 
+	home, _ := os.UserHomeDir()
+
 	args := []string{
 		"--height=40%",
 		"--reverse",
 		"--no-sort",
 		"--select-1",
+		"--keep-right",
+		"--wrap",
 		"--header=Git Repos",
-		"--preview", `git -C {} log --oneline -5 2>/dev/null; echo; echo "branch: $(git -C {} branch --show-current 2>/dev/null)"; echo; git -C {} status --short 2>/dev/null | head -10`,
+		"--preview", previewCmd(home),
 	}
 	if query != "" {
 		args = append(args, "--query", query)
@@ -34,7 +38,7 @@ func Run(entries []entry.Entry, query string) (string, error) {
 
 	var input strings.Builder
 	for _, e := range entries {
-		fmt.Fprintln(&input, e.Path)
+		fmt.Fprintln(&input, shortenPath(e.Path, home))
 	}
 	cmd.Stdin = strings.NewReader(input.String())
 
@@ -49,5 +53,29 @@ func Run(entries []entry.Entry, query string) (string, error) {
 		return "", err
 	}
 
-	return strings.TrimSpace(string(out)), nil
+	selected := strings.TrimSpace(string(out))
+	return expandPath(selected, home), nil
+}
+
+// shortenPath replaces $HOME prefix with ~ for compact display.
+func shortenPath(path, home string) string {
+	if home != "" && strings.HasPrefix(path, home) {
+		return "~" + path[len(home):]
+	}
+	return path
+}
+
+// expandPath restores ~ back to the absolute home directory path.
+func expandPath(path, home string) string {
+	if home != "" && strings.HasPrefix(path, "~/") {
+		return home + path[1:]
+	}
+	return path
+}
+
+// previewCmd builds the fzf preview command, expanding ~ to $HOME for git commands.
+func previewCmd(home string) string {
+	// Use shell variable expansion: replace ~ with actual home in the path before passing to git
+	resolve := fmt.Sprintf(`p="{}"; p="${p/#\\~/%s}"`, home)
+	return resolve + `; git -C "$p" log --oneline -5 2>/dev/null; echo; echo "branch: $(git -C "$p" branch --show-current 2>/dev/null)"; echo; git -C "$p" status --short 2>/dev/null | head -10`
 }
