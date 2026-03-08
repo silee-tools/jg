@@ -77,6 +77,14 @@ gum spin --title "Pushing to origin..." -- bash -c \
   "git push origin main && git push origin v${NEW_VERSION}"
 
 echo ""
+# ─── Clean up local dev build ─────────────────────────────
+if [[ -f ~/.local/bin/jg ]]; then
+  if gum confirm "Remove local dev build (~/.local/bin/jg)?"; then
+    rm -f ~/.local/bin/jg
+    gum log --level info "Removed ~/.local/bin/jg (dev build)"
+  fi
+fi
+
 gum style --bold --foreground 2 "✓ Released v${NEW_VERSION}!"
 echo "GitHub Actions will now build and publish the release."
 echo "Track progress: https://github.com/silee-tools/jg/actions"
