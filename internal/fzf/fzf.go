@@ -21,6 +21,7 @@ func Run(entries []entry.Entry, query string) (string, error) {
 		"--height=40%",
 		"--reverse",
 		"--no-sort",
+		"--select-1",
 		"--header=Git Repos",
 		"--preview", `git -C {} log --oneline -5 2>/dev/null; echo; echo "branch: $(git -C {} branch --show-current 2>/dev/null)"; echo; git -C {} status --short 2>/dev/null | head -10`,
 	}
