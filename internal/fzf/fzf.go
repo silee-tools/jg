@@ -30,7 +30,7 @@ func Run(entries []entry.Entry, query string) (string, error) {
 		"--preview", previewCmd(home),
 	}
 	if query != "" {
-		args = append(args, "--query", query)
+		args = append(args, "--query", shortenPath(query, home))
 	}
 
 	cmd := exec.Command(fzfPath, args...)
